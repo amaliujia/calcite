@@ -1797,6 +1797,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // instead; for now just eat it
         Arrays.fill(operandTypes, unknownType);
       } else {
+        // TRACER.info("[inferredType] " + inferredType.toString());
+        TRACER.info(String.format("%d", operandTypes.length));
         operandTypeInference.inferOperandTypes(
             callBinding,
             inferredType,

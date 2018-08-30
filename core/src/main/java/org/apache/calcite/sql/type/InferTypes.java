@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlNode;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+// import org.apache.calcite.util.trace.CalciteTrace;
+// import org.slf4j.Logger;
 
 /**
  * Strategies for inferring operand types.
@@ -31,6 +33,8 @@ import java.util.List;
  * @see org.apache.calcite.sql.type.ReturnTypes
  */
 public abstract class InferTypes {
+  // public static final Logger TRACER = CalciteTrace.PARSER_LOGGER;
+
   private InferTypes() {}
 
   /**
@@ -67,6 +71,9 @@ public abstract class InferTypes {
    */
   public static final SqlOperandTypeInference RETURN_TYPE =
       (callBinding, returnType, operandTypes) -> {
+        // if (returnType.isStruct()) {
+        //   TRACER.info(String.format("%d", returnType.getFieldList().size()));
+        // }
         for (int i = 0; i < operandTypes.length; ++i) {
           operandTypes[i] =
               returnType.isStruct()

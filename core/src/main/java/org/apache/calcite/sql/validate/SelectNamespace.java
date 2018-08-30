@@ -20,6 +20,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.slf4j.Logger;
 
 /**
  * Namespace offered by a sub-query.
@@ -29,7 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
  */
 public class SelectNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------
-
+  public static final Logger TRACER = CalciteTrace.PARSER_LOGGER;
   private final SqlSelect select;
 
   //~ Constructors -----------------------------------------------------------
@@ -67,6 +70,10 @@ public class SelectNamespace extends AbstractNamespace {
 
   public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
+    TRACER.info("Starting---------------------------");
+    TRACER.info("" + rowType.getFieldList().get(0).getType().isStruct());
+    TRACER.info("Column name: " + columnName);
+
     final int field = SqlTypeUtil.findField(rowType, columnName);
     final SqlNode selectItem =
         validator.getRawSelectScope(select)

@@ -78,6 +78,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,6 +87,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -126,6 +129,7 @@ import java.util.SortedSet;
  */
 public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
+  public static final Logger TRACER = CalciteTrace.PARSER_LOGGER;
 
   private final RelBuilder relBuilder;
   private final RexBuilder rexBuilder;
@@ -575,6 +579,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       List<Pair<RexNode, String>> flattenedExps) {
     if (exp.getType().isStruct()) {
       if (exp instanceof RexInputRef) {
+        TRACER.info("Flattening happens-------------______+++++++_____++++");
+        TRACER.info(exp.toString());
         RexInputRef inputRef = (RexInputRef) exp;
         int newOffset = getNewForOldInput(inputRef.getIndex());
 
