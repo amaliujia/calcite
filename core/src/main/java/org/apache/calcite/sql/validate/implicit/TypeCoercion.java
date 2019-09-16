@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.validate.implicit;
 
+import java.util.List;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -23,8 +25,6 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-
-import java.util.List;
 
 /**
  * Default strategies to coerce differing types that participate in

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.sql.Types;
+import java.util.Collection;
+import java.util.Map;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -25,10 +29,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import java.sql.Types;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * SqlTypeFamily provides SQL type categorization.

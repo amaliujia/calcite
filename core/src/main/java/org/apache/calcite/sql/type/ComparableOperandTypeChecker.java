@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.Objects;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
-
-import java.util.Objects;
 
 /**
  * Type checking strategy which verifies that types have the required attributes

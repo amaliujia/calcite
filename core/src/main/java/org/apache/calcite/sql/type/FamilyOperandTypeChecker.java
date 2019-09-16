@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.sql.type;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -26,11 +31,6 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.function.Predicate;
-
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Operand type-checking strategy which checks operands for inclusion in type

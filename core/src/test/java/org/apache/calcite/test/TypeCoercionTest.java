@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,13 +35,9 @@ import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.util.Pair;
-
-import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test cases for implicit type coercion. see {@link TypeCoercion} doc

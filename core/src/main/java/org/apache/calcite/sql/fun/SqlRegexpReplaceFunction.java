@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.fun;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -27,9 +30,6 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The REGEXP_REPLACE(source_string, pattern, replacement [, pos, occurrence, match_type])

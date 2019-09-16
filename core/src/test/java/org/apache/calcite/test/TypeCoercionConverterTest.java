@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
-
 import org.junit.Test;
 
 /**

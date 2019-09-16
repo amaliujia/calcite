@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import java.util.Set;
+
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -35,8 +37,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
-
-import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}

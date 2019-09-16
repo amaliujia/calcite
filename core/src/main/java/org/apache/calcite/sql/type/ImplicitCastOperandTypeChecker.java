@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.List;
+
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
-
-import java.util.List;
 
 /**
  * An operand type checker that supports implicit type cast, see
