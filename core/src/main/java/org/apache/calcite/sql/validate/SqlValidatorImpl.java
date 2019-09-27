@@ -2285,6 +2285,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case VALUES:
     case WITH:
     case OTHER_FUNCTION:
+    case TUMBLE:
       if (alias == null) {
         alias = deriveAlias(node, nextGeneratedId++);
       }
@@ -2742,6 +2743,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case OTHER_FUNCTION:
+    case TUMBLE:
       call = (SqlCall) node;
       ProcedureNamespace procNs =
           new ProcedureNamespace(

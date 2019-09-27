@@ -2706,6 +2706,14 @@ public class SqlFunctions {
     return x;
   }
 
+  public static long tumbleWindowStart(long tsMillis, long sizeMillis) {
+    return tsMillis / sizeMillis * sizeMillis;
+  }
+
+  public static long tumbleWindowEnd(long tsMillis, long sizeMillis) {
+    return (tsMillis / sizeMillis + 1L) * sizeMillis;
+  }
+
   /**
    * Implements the {@code .} (field access) operator on an object
    * whose type is not known until runtime.
