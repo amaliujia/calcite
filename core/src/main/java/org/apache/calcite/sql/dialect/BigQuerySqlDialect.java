@@ -18,14 +18,20 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 
 import com.google.common.collect.ImmutableList;
 
@@ -130,6 +136,55 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /** BigQuery data type reference:
+   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
+   * Bigquery Standard SQL Data Types</a>
+   */
+  @Override public SqlNode getCastSpec(final RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      SqlUserDefinedTypeNameSpec typeNameSpec;
+      switch (type.getSqlTypeName()) {
+      case BIGINT:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("INT64", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case DOUBLE:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("FLOAT64", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case DECIMAL:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("NUMERIC", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case BOOLEAN:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("BOOL", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case VARCHAR:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("STRING", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case VARBINARY:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("BYTES", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case DATE:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("DATE", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case TIME:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("TIME", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      case TIMESTAMP:
+        typeNameSpec = new SqlUserDefinedTypeNameSpec(
+                new SqlIdentifier("TIMESTAMP", SqlParserPos.ZERO), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      }
+    }
+    return super.getCastSpec(type);
   }
 
   /**
