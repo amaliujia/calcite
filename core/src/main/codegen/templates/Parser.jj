@@ -5866,12 +5866,21 @@ SqlCall GroupByWindowingCall():
 {
     final Span s;
     final List<SqlNode> args;
+    SqlCall ret;
 }
 {
-    <TUMBLE> { s = span(); }
-    args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
-        return SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
-    }
+    (
+        <TUMBLE> { s = span(); }
+        args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+            ret = SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
+        }
+    |
+        <HOP> { s= span(); }
+        args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+            ret = SqlStdOperatorTable.HOP.createCall(s.end(this), args);
+        }
+    )
+    { return ret; }
 }
 
 SqlCall MatchRecognizeFunctionCall() :
@@ -6769,6 +6778,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HAVING: "HAVING" >
 |   < HIERARCHY: "HIERARCHY" >
 |   < HOLD: "HOLD" >
+|   < HOP: "HOP" >
 |   < HOUR: "HOUR" >
 |   < HOURS: "HOURS" >
 |   < IDENTITY: "IDENTITY" >

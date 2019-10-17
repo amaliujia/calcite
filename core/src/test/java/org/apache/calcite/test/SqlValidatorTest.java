@@ -10133,7 +10133,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
         .fails("Call to auxiliary group function 'HOP_START' must have "
-            + "matching call to group function 'HOP' in GROUP BY clause");
+            + "matching call to group function '\\$HOP' in GROUP BY clause");
     // HOP with align
     sql("select stream\n"
         + "  hop_start(rowtime, interval '1' hour, interval '3' hour,\n"
