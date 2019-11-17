@@ -139,4 +139,11 @@ public interface FrameworkConfig {
    * Returns a view expander.
    */
   RelOptTable.ViewExpander getViewExpander();
+
+  /**
+   * returns whether disable struct flattener.
+   */
+  default boolean isDisableStructFlattener() {
+    return false;
+  }
 }
