@@ -10086,6 +10086,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'F0\\.C1\\.NOTFOUND' not found in table '" + table + "'");
   }
 
+  @Test public void testDescriptor() {
+    sql("select * from table(tumble(table orders, descriptor(rowtime)))").ok();
+  }
+
   @Test public void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"

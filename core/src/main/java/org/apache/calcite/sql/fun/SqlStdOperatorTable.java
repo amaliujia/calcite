@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDescriptorOperator;
 import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -2252,6 +2253,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           call.operand(1).unparse(writer, 0, rightPrec);
         }
       };
+
+  public static final SqlOperator DESCRIPTOR = new SqlDescriptorOperator();
 
   /** TUMBLE as a table-value function. */
   public static final SqlFunction TUMBLE_TABLE_FUNCTION =
