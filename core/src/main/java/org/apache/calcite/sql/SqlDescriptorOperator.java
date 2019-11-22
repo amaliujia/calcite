@@ -21,6 +21,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
+
 
 /**
  * DESCRIPTOR appears as an argument in a table-valued function that also accepts
@@ -44,6 +48,23 @@ public class SqlDescriptorOperator extends SqlOperator {
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
+    List<SqlNode> sqlIdentifiers = call.getOperandList();
+
+    // validate column names that are specified by DESCRIPTOR.
+    sqlIdentifiers.stream().forEach(
+        node -> {
+          if (!(node instanceof SqlIdentifier)) {
+            throw SqlUtil.newContextException(node.getParserPosition(),
+                RESOURCE.aliasMustBeSimpleIdentifier());
+          }
+
+          SqlIdentifier identifier = (SqlIdentifier) node;
+          if (scope.resolveColumn(identifier.getSimple(), node) == null) {
+            throw SqlUtil.newContextException(node.getParserPosition(),
+                RESOURCE.unknownIdentifier(identifier.getSimple()));
+          }
+        }
+    );
     return validator.getTypeFactory().createSqlType(SqlTypeName.COLUMN_LIST);
   }
 

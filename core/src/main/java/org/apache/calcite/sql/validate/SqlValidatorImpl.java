@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlTableValueFunctionWindowingOperator;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -1093,6 +1094,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         case TABLE_REF:
         case EXTEND:
           return getNamespace(nested, scope);
+        }
+      case COLLECTION_TABLE:
+        if (call.getOperandList().size() == 1
+            && call.getOperandList().get(0) instanceof SqlCall) {
+          SqlCall innerCall = (SqlCall) call.getOperandList().get(0);
+          SqlOperator operator = innerCall.getOperator();
+          if (operator instanceof SqlTableValueFunctionWindowingOperator) {
+            return getNamespace(innerCall.getOperandList().get(0), scope);
+          }
         }
         break;
       }
