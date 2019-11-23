@@ -27,14 +27,14 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 
 /**
- * DESCRIPTOR appears as an argument in a table-valued function that also accepts
+ * <p>DESCRIPTOR appears as an argument in a table-valued function that also accepts
  * TABLE parameter or subquery.
  *
- * A typical syntax is
+ * <p>A typical syntax is
  *    1. table_valued_func(TABLE table_name, DESCRIPTOR(col_name, ...)).
  *    2. table_valued_func((subquery), DESCRIPTOR(col_name, ...)).
  *
- * The scope of column names is within the scope of the function. Typically
+ * <p>The scope of column names is within the scope of the function. Typically
  * column names can be found from output columns of TABLE parameter or subquery.
  */
 public class SqlDescriptorOperator extends SqlOperator {
