@@ -1843,7 +1843,7 @@ Table-valued window functions occur in the `FROM` clause. These functions typica
 3. additional windowing parameters. E.g. window size.
 
 Here is an example:
-`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE`,
+`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
 will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
 watermarked column of table orders that tells data completeness.
 

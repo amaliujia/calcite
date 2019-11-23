@@ -72,7 +72,6 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlTableValueFunctionWindowingOperator;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -1094,15 +1093,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         case TABLE_REF:
         case EXTEND:
           return getNamespace(nested, scope);
-        }
-      case COLLECTION_TABLE:
-        if (call.getOperandList().size() == 1
-            && call.getOperandList().get(0) instanceof SqlCall) {
-          SqlCall innerCall = (SqlCall) call.getOperandList().get(0);
-          SqlOperator operator = innerCall.getOperator();
-          if (operator instanceof SqlTableValueFunctionWindowingOperator) {
-            return getNamespace(innerCall.getOperandList().get(0), scope);
-          }
         }
         break;
       }
@@ -2751,9 +2741,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerOperandSubQueries(parentScope, call, 0);
       scopes.put(node, parentScope);
       break;
-
-    case OTHER_FUNCTION:
     case TUMBLE:
+      call = (SqlCall) node;
+      // register subqueries before build namespace for TUMBLE because we need to know
+      // the scope of input relation.
+      registerSubQueries(parentScope, call);
+
+      // The scope of TUMBLE
+      ProcedureNamespace tumbleScope =
+          new ProcedureNamespace(
+              this,
+              scopes.get(call.getOperandList().get(0)),
+              call,
+              enclosingNode);
+      registerNamespace(
+          usingScope,
+          alias,
+          tumbleScope,
+          forceNullable);
+      break;
+    case OTHER_FUNCTION:
       call = (SqlCall) node;
       ProcedureNamespace procNs =
           new ProcedureNamespace(
