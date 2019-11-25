@@ -16,7 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.type.*;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
@@ -93,8 +100,8 @@ public abstract class ReturnTypes {
    * additional fields:
    *
    * <ol>
-   *  <li>wstart. TIMESTAMP type to indicate a window's start.</li>
-   *  <li>wend. TIMESTAMP type to indicate a window's end.</li>
+   *  <li>window_start. TIMESTAMP type to indicate a window's start.</li>
+   *  <li>window_end. TIMESTAMP type to indicate a window's end.</li>
    * </ol>
    */
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =
@@ -104,10 +111,10 @@ public abstract class ReturnTypes {
         RelDataType timestampType = opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
 
         RelDataTypeField windowStartField =
-            new RelDataTypeFieldImpl("wstart", newFields.size(), timestampType);
+            new RelDataTypeFieldImpl("window_start", newFields.size(), timestampType);
         newFields.add(windowStartField);
         RelDataTypeField windowEndField =
-            new RelDataTypeFieldImpl("wend", newFields.size(), timestampType);
+            new RelDataTypeFieldImpl("window_end", newFields.size(), timestampType);
         newFields.add(windowEndField);
 
         return new RelRecordType(inputRowType.getStructKind(), newFields);
