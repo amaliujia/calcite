@@ -25,12 +25,13 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
  * With this class, we are able to re-write argumentMustBeScalar(int) because the first
  * parameter of table-value function windowing is TABLE parameter.
  */
-public class SqlTableValueFunctionWindowingOperator extends SqlFunction {
-  public SqlTableValueFunctionWindowingOperator(String name, SqlKind kind,
-                                                  SqlReturnTypeInference returnTypeInference,
-                                                  SqlOperandTypeInference operandTypeInference,
-                                                  SqlOperandTypeChecker operandTypeChecker,
-                                                  SqlFunctionCategory category) {
+public class SqlTableValuedFunctionWindowingOperator extends SqlFunction {
+  public SqlTableValuedFunctionWindowingOperator(
+      String name, SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory category) {
       super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
   }
 
