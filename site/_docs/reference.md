@@ -1836,21 +1836,27 @@ Not implemented:
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
 
-### Table-valued window functions and DESCRIPTOR.
-Table-valued window functions occur in the `FROM` clause. These functions typically accept
-1. TABLE parameter or subquery, which provides a relation as one of the input.
-2. A DESCRIPTOR to specify a watermarked column from input relation.
-3. additional windowing parameters. E.g. window size.
+### DESCRIPTOR
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
+
+### Table-valued functions.
+Table-valued functions occur in the `FROM` clause.
+
+#### TUMBLE
+In streaming queries, TUMBLE assigns a window for each row of a relation based on a timestamp column. An assigned window
+is specified by its beginning and ending. All assigned windows have the same length, and that's why tumbling sometimes
+is named as "fixed windowing".
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE(table, DESCRIPTOR(column_name), interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*. Tumbling is applied on table in which there is a watermarked column specified by descriptor.
 
 Here is an example:
 `SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
 will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
 watermarked column of table orders that tells data completeness.
-
-| Operator syntax      | Description
-|:-------------------- |:-----------
-| DESCRIPTOR | Indicates a watermarked column for a table-valued window function.
-| TUMBLE(table, DESCRIPTOR(column_name), interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*. Tumbling is applied on table in which there is a watermarked column specified by descriptor.
 
 ### Grouped window functions
 

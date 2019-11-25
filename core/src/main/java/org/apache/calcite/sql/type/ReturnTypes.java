@@ -16,12 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeImpl;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rel.type.*;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
@@ -32,6 +27,7 @@ import org.apache.calcite.util.Glossary;
 import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -95,11 +91,27 @@ public abstract class ReturnTypes {
    * Type-inference strategy whereby the result type of a table function call is a ROW,
    * which is combined from the operand #0(TABLE parameter)'s schema and two
    * additional fields:
-   *  1. wstart. TIMESTAMP type to indicate a window's start.
-   *  2. wend. TIMESTAMP type to indicate a window's end.
+   *
+   * <ol>
+   *  <li>wstart. TIMESTAMP type to indicate a window's start.</li>
+   *  <li>wend. TIMESTAMP type to indicate a window's end.</li>
+   * </ol>
    */
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =
-          new TableFunctionWindowingOrdinalReturnTypeInference(0);
+      opBinding -> {
+        RelDataType inputRowType = opBinding.getOperandType(0);
+        List<RelDataTypeField> newFields = new ArrayList<>(inputRowType.getFieldList());
+        RelDataType timestampType = opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+
+        RelDataTypeField windowStartField =
+            new RelDataTypeFieldImpl("wstart", newFields.size(), timestampType);
+        newFields.add(windowStartField);
+        RelDataTypeField windowEndField =
+            new RelDataTypeFieldImpl("wend", newFields.size(), timestampType);
+        newFields.add(windowEndField);
+
+        return new RelRecordType(inputRowType.getStructKind(), newFields);
+      };
 
   /**
    * Type-inference strategy whereby the result type of a call is VARYING the

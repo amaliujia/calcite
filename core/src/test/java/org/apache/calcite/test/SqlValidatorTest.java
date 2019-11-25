@@ -10079,8 +10079,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testDescriptor() {
     sql("select * from table(tumble(table orders, descriptor(rowtime)))").ok();
-    sql("select * from table(tumble(table orders, descriptor(column_not_exist)))")
-        .expr("select * from table(tumble(table orders, descriptor(^column_not_exist^)))")
+    expr("select * from table(tumble(table orders, descriptor(^column_not_exist^)))")
         .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
   }
 

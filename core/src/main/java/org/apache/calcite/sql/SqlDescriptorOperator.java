@@ -27,15 +27,13 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 
 /**
- * <p>DESCRIPTOR appears as an argument in a table-valued function that also accepts
- * TABLE parameter or subquery.
+ * <p>DESCRIPTOR appears as an argument in a function. DESCRIPTOR accepts a list of
+ * identifiers that represent a list of names. The interpretation of names is left
+ * to the function.
  *
- * <p>A typical syntax is
- *    1. table_valued_func(TABLE table_name, DESCRIPTOR(col_name, ...)).
- *    2. table_valued_func((subquery), DESCRIPTOR(col_name, ...)).
+ * <p>A typical syntax is DESCRIPTOR(col_name, ...).
  *
- * <p>The scope of column names is within the scope of the function. Typically
- * column names can be found from output columns of TABLE parameter or subquery.
+ * <p>An example is a table-valued function that takes names of columns to filter on.
  */
 public class SqlDescriptorOperator extends SqlOperator {
   public SqlDescriptorOperator() {
@@ -51,20 +49,18 @@ public class SqlDescriptorOperator extends SqlOperator {
     List<SqlNode> sqlIdentifiers = call.getOperandList();
 
     // validate column names that are specified by DESCRIPTOR.
-    sqlIdentifiers.stream().forEach(
-        node -> {
-          if (!(node instanceof SqlIdentifier)) {
-            throw SqlUtil.newContextException(node.getParserPosition(),
-                RESOURCE.aliasMustBeSimpleIdentifier());
-          }
+    for (SqlNode node : sqlIdentifiers) {
+      if (!(node instanceof SqlIdentifier)) {
+        throw SqlUtil.newContextException(node.getParserPosition(),
+            RESOURCE.aliasMustBeSimpleIdentifier());
+      }
 
-          SqlIdentifier identifier = (SqlIdentifier) node;
-          if (scope.resolveColumn(identifier.getSimple(), node) == null) {
-            throw SqlUtil.newContextException(node.getParserPosition(),
-                RESOURCE.unknownIdentifier(identifier.getSimple()));
-          }
-        }
-    );
+      SqlIdentifier identifier = (SqlIdentifier) node;
+      if (scope.resolveColumn(identifier.getSimple(), node) == null) {
+        throw SqlUtil.newContextException(node.getParserPosition(),
+            RESOURCE.unknownIdentifier(identifier.getSimple()));
+      }
+    }
     return validator.getTypeFactory().createSqlType(SqlTypeName.COLUMN_LIST);
   }
 
