@@ -19,7 +19,7 @@
 !set outputformat mysql
 SELECT * FROM TABLE(TUMBLE(TABLE ORDERS, DESCRIPTOR(ROWTIME), INTERVAL '1' MINUTE));
 +---------------------+----+---------+-------+---------------------+---------------------+
-| ROWTIME             | ID | PRODUCT | UNITS | wstart              | wend                |
+| ROWTIME             | ID | PRODUCT | UNITS | window_start        | window_end          |
 +---------------------+----+---------+-------+---------------------+---------------------+
 | 2015-02-15 10:15:00 |  1 | paint   |    10 | 2015-02-15 10:15:00 | 2015-02-15 10:16:00 |
 | 2015-02-15 10:24:15 |  2 | paper   |     5 | 2015-02-15 10:24:00 | 2015-02-15 10:25:00 |

@@ -21,7 +21,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
 /**
- * Base class for table-value function windowing operator (TUMBLE, HOP and SESSION).
+ * Base class for table-valued function windowing operator (TUMBLE, HOP and SESSION).
  */
 public class SqlTableValuedFunctionWindowingOperator extends SqlFunction {
   public SqlTableValuedFunctionWindowingOperator(
