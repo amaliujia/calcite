@@ -81,7 +81,6 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.CalciteAssert.SchemaSpec;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Smalls;
@@ -281,7 +280,7 @@ public class PlannerTest {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(
-            CalciteAssert.addSchema(rootSchema, SchemaSpec.HR))
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .traitDefs(traitDefs)
         .programs(programs)
         .build();
