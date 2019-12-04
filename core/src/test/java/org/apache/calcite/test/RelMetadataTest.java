@@ -36,11 +36,13 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -71,6 +73,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -83,8 +86,11 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
@@ -102,12 +108,10 @@ import com.google.common.collect.Sets;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.core.Is;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -134,12 +138,13 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Unit test for {@link DefaultRelMetadataProvider}. See
@@ -181,6 +186,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // ----------------------------------------------------------------------
 
   private RelNode convertSql(String sql) {
+    return convertSql(tester, sql);
+  }
+
+  private RelNode convertSql(Tester tester, String sql) {
     final RelRoot root = tester.convertSqlToRel(sql);
     root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
     return root.rel;
@@ -220,14 +229,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsOneFilter() {
     checkPercentageOriginalRows(
         "select * from dept where deptno = 20",
         DEFAULT_EQUAL_SELECTIVITY);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsTwoFilters() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where name='X')\n"
@@ -235,7 +244,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         DEFAULT_EQUAL_SELECTIVITY_SQUARED);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsRedundantFilter() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where deptno=20)\n"
@@ -249,7 +258,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsJoinTwoFilters() {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from emp where deptno=10) e\n"
@@ -264,7 +273,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         1.0);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsUnionLittleFilter() {
     checkPercentageOriginalRows(
         "select name from dept where deptno=20"
@@ -273,7 +282,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             / (DEPT_SIZE + EMP_SIZE));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPercentageOriginalRowsUnionBigFilter() {
     checkPercentageOriginalRows(
         "select name from dept"
@@ -503,13 +512,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Double result = mq.getRowCount(rel);
     assertThat(result, notNullValue());
-    assertEquals(expected, result, 0d);
+    assertThat(result, is(expected));
     final Double max = mq.getMaxRowCount(rel);
     assertThat(max, notNullValue());
-    assertEquals(expectedMax, max, 0d);
+    assertThat(max, is(expectedMax));
     final Double min = mq.getMinRowCount(rel);
-    assertThat(max, notNullValue());
-    assertEquals(expectedMin, min, 0d);
+    assertThat(min, notNullValue());
+    assertThat(min, is(expectedMin));
   }
 
   @Test public void testRowCountEmp() {
@@ -643,6 +652,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
     checkExchangeRowCount(exchange, EMP_SIZE, 0D, 123456D);
+  }
+
+  @Test public void testRowCountTableModify() {
+    final String sql = "insert into emp select * from emp order by ename limit 123456";
+    checkRowCount(sql, EMP_SIZE, 0D, 123456D);
   }
 
   @Test public void testRowCountSortHighLimit() {
@@ -828,14 +842,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1808">[CALCITE-1808]
    * JaninoRelMetadataProvider loading cache might cause
-   * OutOfMemoryError</a>. */
+   * OutOfMemoryError</a>.
+   *
+   * Too slow to run every day, and it does not reproduce the issue. */
+  @Tag("slow")
   @Test public void testMetadataHandlerCacheLimit() {
-    Assume.assumeTrue("too slow to run every day, and it does not reproduce the issue",
-        CalciteSystemProperty.TEST_SLOW.value());
-    Assume.assumeTrue("If cache size is too large, this test may fail and the "
-            + "test won't be to blame",
-        CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value()
-            < 10_000);
+    assumeTrue(CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value() < 10_000,
+        "If cache size is too large, this test may fail and the test won't be to blame");
     final int iterationCount = 2_000;
     final RelNode rel = convertSql("select * from emp");
     final RelMetadataProvider metadataProvider =
@@ -869,6 +882,33 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result, is(1D));
   }
 
+  // ----------------------------------------------------------------------
+  // Tests for getUniqueKeys
+  // ----------------------------------------------------------------------
+
+  /**
+   * Checks result of getting unique keys for sql, using specific tester.
+   */
+  private void checkGetUniqueKeys(Tester tester,
+      String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
+    RelNode rel = convertSql(tester, sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
+    assertThat(result, CoreMatchers.equalTo(expectedUniqueKeySet));
+    assertUniqueConsistent(rel);
+  }
+
+  /**
+   * Checks result of getting unique keys for sql, using default tester.
+   */
+  private void checkGetUniqueKeys(String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
+    RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
+    assertThat(result, CoreMatchers.equalTo(expectedUniqueKeySet));
+    assertUniqueConsistent(rel);
+  }
+
   /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}
    * and {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    * return consistent results. */
@@ -899,11 +939,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * "RelMdColumnUniqueness uses ImmutableBitSet.Builder twice, gets
    * NullPointerException"</a>. */
   @Test public void testJoinUniqueKeys() {
-    RelNode rel = convertSql("select * from emp join bonus using (ename)");
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result.isEmpty(), is(true));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys("select * from emp join bonus using (ename)",
+        ImmutableSet.of());
   }
 
   @Test public void testCorrelateUniqueKeys() {
@@ -932,23 +969,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testGroupByEmptyUniqueKeys() {
-    RelNode rel = convertSql("select count(*) from emp");
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result,
-        CoreMatchers.equalTo(
-            ImmutableSet.of(ImmutableBitSet.of())));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys("select count(*) from emp",
+        ImmutableSet.of(ImmutableBitSet.of()));
   }
 
   @Test public void testGroupByEmptyHavingUniqueKeys() {
-    RelNode rel = convertSql("select count(*) from emp where 1 = 1");
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result,
-        CoreMatchers.equalTo(
-            ImmutableSet.of(ImmutableBitSet.of())));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys("select count(*) from emp where 1 = 1",
+        ImmutableSet.of(ImmutableBitSet.of()));
   }
 
   @Test public void testFullOuterJoinUniqueness1() {
@@ -1106,26 +1133,51 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testGroupBy() {
-    RelNode rel = convertSql("select deptno, count(*), sum(sal) from emp\n"
-            + "group by deptno");
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result,
-        CoreMatchers.equalTo(
-            ImmutableSet.of(ImmutableBitSet.of(0))));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys("select deptno, count(*), sum(sal) from emp group by deptno",
+        ImmutableSet.of(ImmutableBitSet.of(0)));
   }
 
   @Test public void testUnion() {
-    RelNode rel = convertSql("select deptno from emp\n"
-            + "union\n"
-            + "select deptno from dept");
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result,
-        CoreMatchers.equalTo(
-            ImmutableSet.of(ImmutableBitSet.of(0))));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys("select deptno from emp\n"
+        + "union\n"
+        + "select deptno from dept",
+        ImmutableSet.of(ImmutableBitSet.of(0)));
+  }
+
+  @Test public void testSingleKeyTableScanUniqueKeys() {
+    // select key column
+    checkGetUniqueKeys("select empno, ename from emp",
+        ImmutableSet.of(ImmutableBitSet.of(0)));
+
+    // select non key column
+    checkGetUniqueKeys("select ename, deptno from emp",
+        ImmutableSet.of());
+  }
+
+  @Test public void testCompositeKeysTableScanUniqueKeys() {
+    SqlTestFactory.MockCatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+    Tester newTester = tester.withCatalogReaderFactory(factory);
+
+    // all columns, contain composite keys
+    checkGetUniqueKeys(newTester, "select * from s.composite_keys_table",
+        ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+
+    // only contain composite keys
+    checkGetUniqueKeys(newTester, "select key1, key2 from s.composite_keys_table",
+        ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+
+    // partial column of composite keys
+    checkGetUniqueKeys(newTester, "select key1, value1 from s.composite_keys_table",
+        ImmutableSet.of());
+
+    // no column of composite keys
+    checkGetUniqueKeys(newTester, "select value1 from s.composite_keys_table",
+        ImmutableSet.of());
   }
 
   @Test public void testBrokenCustomProviderWithMetadataFactory() {
@@ -1788,11 +1840,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2205">[CALCITE-2205]</a>.
    * Since this is a performance problem, the test result does not
    * change, but takes over 15 minutes before the fix and 6 seconds after. */
-  @Test(timeout = 20_000) public void testPullUpPredicatesForExprsItr() {
-    // If we're running Windows, we are probably in a VM and the test may
-    // exceed timeout by a small margin.
-    Assume.assumeThat("Too slow to run on Windows",
-        File.separatorChar, Is.is('/'));
+  @Test
+  public void testPullUpPredicatesForExprsItr() {
     final String sql = "select a.EMPNO, a.ENAME\n"
         + "from (select * from sales.emp ) a\n"
         + "join (select * from sales.emp  ) b\n"
@@ -2427,6 +2476,34 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
+  @Test public void testTableReferenceForIntersect() {
+    final String sql1 = "select a.deptno, a.sal from emp a\n"
+        + "intersect all select b.deptno, b.sal from emp b where empno = 5";
+    final RelNode rel1 = convertSql(sql1);
+    final RelMetadataQuery mq1 = rel1.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences1 = Sets.newTreeSet(mq1.getTableReferences(rel1));
+    assertThat(tableReferences1.toString(),
+        equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+
+    final String sql2 = "select a.deptno from dept a intersect all select b.deptno from emp b";
+    final RelNode rel2 = convertSql(sql2);
+    final RelMetadataQuery mq2 = rel2.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences2 = Sets.newTreeSet(mq2.getTableReferences(rel2));
+    assertThat(tableReferences2.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+
+  }
+
+  @Test public void testTableReferenceForMinus() {
+    final String sql = "select emp.deptno, emp.sal from emp\n"
+        + "except all select emp.deptno, emp.sal from emp where empno = 5";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+  }
+
   @Test public void testAllPredicatesCrossJoinMultiTable() {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
@@ -2548,12 +2625,43 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkNodeTypeCount(sql, expected);
   }
 
-  @Test public void testNodeTypeTableModify() {
+  @Test public void testNodeTypeCountTableModify() {
     final String sql = "insert into emp select * from emp";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(TableModify.class, 1);
     expected.put(Project.class, 1);
+    checkNodeTypeCount(sql, expected);
+  }
+
+  @Test public void testNodeTypeCountExchange() {
+
+    final RelNode rel = convertSql("select * from emp");
+    final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+
+    final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
+    expected.put(TableScan.class, 1);
+    expected.put(Exchange.class, 1);
+    expected.put(Project.class, 1);
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Multimap<Class<? extends RelNode>, RelNode> result = mq.getNodeTypes(exchange);
+    assertThat(result, notNullValue());
+    final Map<Class<? extends RelNode>, Integer> resultCount = new HashMap<>();
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : result.asMap().entrySet()) {
+      resultCount.put(e.getKey(), e.getValue().size());
+    }
+    assertThat(expected, equalTo(resultCount));
+  }
+
+  @Test public void testNodeTypeCountSample() {
+    final String sql = "select * from emp tablesample system(50) where empno > 5";
+    final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
+    expected.put(TableScan.class, 1);
+    expected.put(Filter.class, 1);
+    expected.put(Project.class, 1);
+    expected.put(Sample.class, 1);
     checkNodeTypeCount(sql, expected);
   }
 
@@ -2942,6 +3050,30 @@ public class RelMetadataTest extends SqlToRelTestBase {
      */
     DummyRelNode(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
       super(cluster, traits, input);
+    }
+  }
+
+  /**
+   * Mocked catalog reader for registering table with composite keys.
+   */
+  private class CompositeKeysCatalogReader extends MockCatalogReaderSimple {
+
+    CompositeKeysCatalogReader(RelDataTypeFactory typeFactory, boolean caseSensitive) {
+      super(typeFactory, caseSensitive);
+    }
+
+    @Override public MockCatalogReader init() {
+      super.init();
+      MockSchema tSchema = new MockSchema("s");
+      registerSchema(tSchema);
+      // Register "T1" table.
+      final MockTable t1 =
+          MockTable.create(this, tSchema, "composite_keys_table", false, 7.0, null);
+      t1.addColumn("key1", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+      t1.addColumn("key2", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+      t1.addColumn("value1", typeFactory.createSqlType(SqlTypeName.INTEGER));
+      registerTable(t1);
+      return this;
     }
   }
 }

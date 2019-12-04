@@ -52,10 +52,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,11 +76,12 @@ import static org.apache.calcite.sql.parser.SqlParser.configBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -153,7 +153,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @BeforeClass public static void setUSLocale() {
+  @BeforeAll public static void setUSLocale() {
     // This ensures numbers in exceptions are printed as in asserts.
     // For example, 1,000 vs 1 000
     Locale.setDefault(Locale.US);
@@ -569,6 +569,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "WHEN 2 THEN INTERVAL '12 3:4:5.6' DAY TO SECOND(9)\n"
         + "END")
         .columnType("INTERVAL DAY TO SECOND(9)");
+
+    sql("select\n"
+        + "CASE WHEN job is not null THEN mgr\n"
+        + "ELSE 5 end as mgr\n"
+        + "from EMP")
+        .columnType("INTEGER");
   }
 
   @Test public void testCaseExpressionFails() {
@@ -619,6 +625,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("coalesce('a','b')").ok();
     expr("coalesce('a','b','c')")
         .columnType("CHAR(1) NOT NULL");
+
+    sql("select COALESCE(mgr, 12) as m from EMP")
+        .columnType("INTEGER NOT NULL");
   }
 
   @Test public void testCoalesceFails() {
@@ -1477,8 +1486,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     wholeExpr("mod(123)")
         .fails("Invalid number of arguments to function 'MOD'. "
             + "Was expecting 2 arguments");
-    Assume.assumeTrue("test case for [CALCITE-3326], disabled til it is fixed",
-        false);
+    assumeTrue(false,
+        "test case for [CALCITE-3326], disabled til it is fixed");
     sql("select foo()")
         .withTypeCoercion(false)
         .fails("No match found for function signature FOO..");
@@ -5773,7 +5782,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("ambig");
   }
 
-  @Ignore("bug: should fail if sub-query does not have alias")
+  @Disabled("bug: should fail if sub-query does not have alias")
   @Test public void testJoinSubQuery() {
     // Sub-queries require alias
     sql("select * from (select 1 as uno from emp)\n"
@@ -8030,7 +8039,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp where (select true from dept)").ok();
   }
 
-  @Ignore("not supported")
+  @Disabled("not supported")
   @Test public void testSubQueryInOnClause() {
     // Currently not supported. Should give validator error, but gives
     // internal error.
@@ -8309,7 +8318,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             ? expected1 : expected2);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testValuesWithAggFuncs() {
     sql("values(^count(1)^)")
         .fails("Call to xxx is invalid\\. Direct calls to aggregate "
@@ -10292,7 +10301,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " from source field 'EXPR\\$2' of type CHAR\\(4\\)");
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateFailDataType() {
     sql("update emp"
         + " set ^empNo^ = '5', deptno = 1, ename = 'Bob'"
@@ -10306,7 +10315,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " from source field 'EXPR$0' of type CHAR(1)");
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateFailCaseSensitivity() {
     sql("update empdefaults"
         + " set empNo = '5', deptno = 1, ename = 'Bob'"
@@ -10398,7 +10407,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).fails(expected);
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateExtendedColumnFailCollision2() {
     final String sql = "update empdefaults(^\"deptno\"^ BOOLEAN)\n"
         + "set \"deptno\" = 1, empno = 1, ename = 'Bob'\n"

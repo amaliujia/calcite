@@ -80,8 +80,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
@@ -432,6 +432,10 @@ public abstract class SqlToRelTestBase {
         return false;
       }
 
+      public List<ImmutableBitSet> getKeys() {
+        return ImmutableList.of();
+      }
+
       public List<RelReferentialConstraint> getReferentialConstraints() {
         return ImmutableList.of();
       }
@@ -508,6 +512,10 @@ public abstract class SqlToRelTestBase {
 
     public boolean isKey(ImmutableBitSet columns) {
       return parent.isKey(columns);
+    }
+
+    public List<ImmutableBitSet> getKeys() {
+      return parent.getKeys();
     }
 
     public List<RelReferentialConstraint> getReferentialConstraints() {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.config;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
 import java.io.File;
@@ -169,12 +170,6 @@ public final class CalciteSystemProperty<T> {
         }
         return ".";
       });
-
-  /**
-   * Whether to run slow tests.
-   */
-  public static final CalciteSystemProperty<Boolean> TEST_SLOW =
-      booleanProperty("calcite.test.slow", false);
 
   /**
    * Whether to run MongoDB tests.
@@ -368,9 +363,11 @@ public final class CalciteSystemProperty<T> {
 
   private static Properties loadProperties() {
     Properties saffronProperties = new Properties();
+    ClassLoader classLoader = MoreObjects.firstNonNull(
+        Thread.currentThread().getContextClassLoader(),
+        CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = CalciteSystemProperty.class.getClassLoader()
-        .getResourceAsStream("saffron.properties")) {
+    try (InputStream stream = classLoader.getResourceAsStream("saffron.properties")) {
       if (stream != null) {
         saffronProperties.load(stream);
       }

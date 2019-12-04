@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
 import static org.apache.calcite.util.Sources.file;
 import static org.apache.calcite.util.Sources.url;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for {@link Source}.
@@ -101,17 +101,17 @@ public class SourceTest {
   @Test public void testSpaceInUrl() {
     String url = "file:" + ROOT_PREFIX + "dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
-        foo.file().getAbsolutePath());
+    assertEquals(new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
+        foo.file().getAbsolutePath(),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testSpaceInRelativeUrl() {
     String url = "file:dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        "dir name/test file.json",
-        foo.file().getPath().replace('\\', '/'));
+    assertEquals("dir name/test file.json",
+        foo.file().getPath().replace('\\', '/'),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testRelative() {

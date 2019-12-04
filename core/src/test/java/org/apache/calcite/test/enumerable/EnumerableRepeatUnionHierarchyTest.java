@@ -27,9 +27,8 @@ import org.apache.calcite.tools.RelBuilder;
 
 import net.jcip.annotations.NotThreadSafe;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -40,7 +39,6 @@ import java.util.function.Function;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class EnumerableRepeatUnionHierarchyTest {
 
@@ -57,7 +55,6 @@ public class EnumerableRepeatUnionHierarchyTest {
   private static final String EMP4 = "empid=4; name=Emp4";
   private static final String EMP5 = "empid=5; name=Emp5";
 
-  @Parameterized.Parameters(name = "{index} : hierarchy(startId:{0}, ascendant:{1}, maxDepth:{2})")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][] {
         { 1, true, -1, new String[]{EMP1} },
@@ -81,37 +78,30 @@ public class EnumerableRepeatUnionHierarchyTest {
     });
   }
 
-  private final int startId;
-  private final int maxDepth;
-  private final String fromField;
-  private final String toField;
-  private final String[] expected;
-
-  public EnumerableRepeatUnionHierarchyTest(int startId, boolean ascendant,
-                                            int maxDepth, String[] expected) {
-    this.startId = startId;
-    this.maxDepth = maxDepth;
-    this.expected = expected;
-
+  @ParameterizedTest
+  @MethodSource("data")
+  public void testHierarchy(int startId, boolean ascendant,
+                            int maxDepth, String[] expected) {
+    final String fromField;
+    final String toField;
     if (ascendant) {
-      this.fromField = "subordinateid";
-      this.toField = "managerid";
+      fromField = "subordinateid";
+      toField = "managerid";
     } else {
-      this.fromField = "managerid";
-      this.toField = "subordinateid";
+      fromField = "managerid";
+      toField = "subordinateid";
     }
-  }
 
-  @Test public void testHierarchy() {
     final Schema schema = new ReflectiveSchema(new HierarchySchema());
     CalciteAssert.that()
         .withSchema("s", schema)
         .query("?")
-        .withRel(hierarchy())
+        .withRel(hierarchy(startId, fromField, toField, maxDepth))
         .returnsOrdered(expected);
   }
 
-  private Function<RelBuilder, RelNode> hierarchy() {
+  private Function<RelBuilder, RelNode> hierarchy(int startId, String fromField,
+                                                  String toField, int maxDepth) {
 
     //   WITH RECURSIVE delta(empid, name) as (
     //       SELECT empid, name FROM emps WHERE empid = <startId>

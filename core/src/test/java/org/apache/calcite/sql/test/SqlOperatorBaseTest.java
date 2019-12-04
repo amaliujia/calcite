@@ -18,11 +18,12 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -40,6 +41,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -60,12 +62,15 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -77,19 +82,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
+
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Contains unit tests for all operators. Each of the methods is named after an
@@ -147,6 +157,8 @@ import static org.junit.Assume.assumeTrue;
  */
 public abstract class SqlOperatorBaseTest {
   //~ Static fields/initializers ---------------------------------------------
+
+  private static final Logger LOGGER = CalciteTrace.getTestTracer(SqlOperatorBaseTest.class);
 
   // TODO: Change message when Fnl3Fixed to something like
   // "Invalid character for cast: PC=0 Code=22018"
@@ -308,7 +320,7 @@ public abstract class SqlOperatorBaseTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     tester.setFor(null);
   }
@@ -1493,6 +1505,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cast(cast(null as time) as timestamp)");
     tester.checkNull("cast(cast(null as timestamp) as date)");
     tester.checkNull("cast(cast(null as timestamp) as time)");
+  }
+
+  private static Calendar getFixedCalendar() {
+    Calendar calendar = Util.calendar();
+    calendar.set(Calendar.YEAR, 2014);
+    calendar.set(Calendar.MONTH, 8);
+    calendar.set(Calendar.DATE, 7);
+    calendar.set(Calendar.HOUR_OF_DAY, 17);
+    calendar.set(Calendar.MINUTE, 8);
+    calendar.set(Calendar.SECOND, 48);
+    calendar.set(Calendar.MILLISECOND, 15);
+    return calendar;
   }
 
   /**
@@ -3789,7 +3813,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'abbc' like 'a\\%c' escape '\\'", Boolean.FALSE);
   }
 
-  @Ignore("[CALCITE-525] Exception-handling in built-in functions")
+  @Disabled("[CALCITE-525] Exception-handling in built-in functions")
   @Test public void testLikeEscape2() {
     tester.checkBoolean("'x' not like 'x' escape 'x'", Boolean.TRUE);
     tester.checkBoolean("'xyz' not like 'xyz' escape 'xyz'", Boolean.TRUE);
@@ -5607,10 +5631,8 @@ public abstract class SqlOperatorBaseTest {
         "No match found for function signature PI\\(\\)", false);
 
     // assert that PI function is not dynamic [CALCITE-2750]
-    assertEquals(
-        "PI operator should not be identified as dynamic function",
-        SqlStdOperatorTable.PI.isDynamicFunction(),
-        false);
+    assertFalse(PI.isDynamicFunction(),
+        "PI operator should not be identified as dynamic function");
   }
 
   @Test public void testRadiansFunc() {
@@ -5921,7 +5943,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("CURRENT_CATALOG", "", "VARCHAR(2000) NOT NULL");
   }
 
-  @Test public void testLocalTimeFunc() {
+  @Tag("slow")
+  @Test public void testLocalTimeFuncWithCurrentTime() {
+    testLocalTimeFunc(currentTimeString(LOCAL_TZ));
+  }
+
+  @Test public void testLocalTimeFuncWithFixedTime() {
+    testLocalTimeFunc(fixedTimeString(LOCAL_TZ));
+  }
+
+  private void testLocalTimeFunc(Pair<String, Hook.Closeable> pair) {
     tester.setFor(SqlStdOperatorTable.LOCALTIME);
     tester.checkScalar("LOCALTIME", TIME_PATTERN, "TIME(0) NOT NULL");
     tester.checkFails(
@@ -5932,7 +5963,6 @@ public abstract class SqlOperatorBaseTest {
         "LOCALTIME(1)", TIME_PATTERN,
         "TIME(1) NOT NULL");
 
-    final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
     tester.checkScalar(
         "CAST(LOCALTIME AS VARCHAR(30))",
         Pattern.compile(
@@ -5946,7 +5976,16 @@ public abstract class SqlOperatorBaseTest {
     pair.right.close();
   }
 
-  @Test public void testLocalTimestampFunc() {
+  @Tag("slow")
+  @Test public void testLocalTimestampFuncWithCurrentTime() {
+    testLocalTimestampFunc(currentTimeString(LOCAL_TZ));
+  }
+
+  @Test public void testLocalTimestampFuncWithFixedTime() {
+    testLocalTimestampFunc(fixedTimeString(LOCAL_TZ));
+  }
+
+  private void testLocalTimestampFunc(Pair<String, Hook.Closeable> pair) {
     tester.setFor(SqlStdOperatorTable.LOCALTIMESTAMP);
     tester.checkScalar(
         "LOCALTIMESTAMP", TIMESTAMP_PATTERN,
@@ -5966,8 +6005,6 @@ public abstract class SqlOperatorBaseTest {
 
     // Check that timestamp is being generated in the right timezone by
     // generating a specific timestamp.
-    final Pair<String, Hook.Closeable> pair = currentTimeString(
-        LOCAL_TZ);
     tester.checkScalar(
         "CAST(LOCALTIMESTAMP AS VARCHAR(30))",
         Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
@@ -5979,7 +6016,16 @@ public abstract class SqlOperatorBaseTest {
     pair.right.close();
   }
 
-  @Test public void testCurrentTimeFunc() {
+  @Tag("slow")
+  @Test public void testCurrentTimeFuncWithCurrentTime() {
+    testCurrentTimeFunc(currentTimeString(CURRENT_TZ));
+  }
+
+  @Test public void testCurrentTimeFuncWithFixedTime() {
+    testCurrentTimeFunc(fixedTimeString(CURRENT_TZ));
+  }
+
+  private void testCurrentTimeFunc(Pair<String, Hook.Closeable> pair) {
     tester.setFor(SqlStdOperatorTable.CURRENT_TIME);
     tester.checkScalar(
         "CURRENT_TIME", TIME_PATTERN,
@@ -5991,7 +6037,6 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "CURRENT_TIME(1)", TIME_PATTERN, "TIME(1) NOT NULL");
 
-    final Pair<String, Hook.Closeable> pair = currentTimeString(CURRENT_TZ);
     tester.checkScalar(
         "CAST(CURRENT_TIME AS VARCHAR(30))",
         Pattern.compile(pair.left.substring(11) + "[0-9][0-9]:[0-9][0-9]"),
@@ -6003,7 +6048,16 @@ public abstract class SqlOperatorBaseTest {
     pair.right.close();
   }
 
-  @Test public void testCurrentTimestampFunc() {
+  @Tag("slow")
+  @Test public void testCurrentTimestampFuncWithCurrentTime() {
+    testCurrentTimestampFunc(currentTimeString(CURRENT_TZ));
+  }
+
+  @Test public void testCurrentTimestampFuncWithFixedTime() {
+    testCurrentTimestampFunc(fixedTimeString(CURRENT_TZ));
+  }
+
+  private void testCurrentTimestampFunc(Pair<String, Hook.Closeable> pair) {
     tester.setFor(SqlStdOperatorTable.CURRENT_TIMESTAMP);
     tester.checkScalar(
         "CURRENT_TIMESTAMP", TIMESTAMP_PATTERN,
@@ -6018,8 +6072,6 @@ public abstract class SqlOperatorBaseTest {
         "CURRENT_TIMESTAMP(1)", TIMESTAMP_PATTERN,
         "TIMESTAMP(1) NOT NULL");
 
-    final Pair<String, Hook.Closeable> pair = currentTimeString(
-        CURRENT_TZ);
     tester.checkScalar(
         "CAST(CURRENT_TIMESTAMP AS VARCHAR(30))",
         Pattern.compile(pair.left + "[0-9][0-9]:[0-9][0-9]"),
@@ -6042,31 +6094,35 @@ public abstract class SqlOperatorBaseTest {
    * @return Time string
    */
   protected static Pair<String, Hook.Closeable> currentTimeString(TimeZone tz) {
-    final Calendar calendar;
-    final Hook.Closeable closeable;
-    if (CalciteSystemProperty.TEST_SLOW.value()) {
-      calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
-      closeable = () -> { };
-    } else {
-      calendar = Util.calendar();
-      calendar.set(Calendar.YEAR, 2014);
-      calendar.set(Calendar.MONTH, 8);
-      calendar.set(Calendar.DATE, 7);
-      calendar.set(Calendar.HOUR_OF_DAY, 17);
-      calendar.set(Calendar.MINUTE, 8);
-      calendar.set(Calendar.SECOND, 48);
-      calendar.set(Calendar.MILLISECOND, 15);
-      final long timeInMillis = calendar.getTimeInMillis();
-      closeable = Hook.CURRENT_TIME.addThread(
-          (Consumer<Holder<Long>>) o -> o.set(timeInMillis));
-    }
-
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:", Locale.ROOT);
-    sdf.setTimeZone(tz);
-    return Pair.of(sdf.format(calendar.getTime()), closeable);
+    final Calendar calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
+    final Hook.Closeable closeable = () -> { };
+    return Pair.of(toTimeString(tz, calendar), closeable);
   }
 
-  @Test public void testCurrentDateFunc() {
+  private static Pair<String, Hook.Closeable> fixedTimeString(TimeZone tz) {
+    final Calendar calendar = getFixedCalendar();
+    final long timeInMillis = calendar.getTimeInMillis();
+    final Hook.Closeable closeable = Hook.CURRENT_TIME.addThread(
+        (Consumer<Holder<Long>>) o -> o.set(timeInMillis));
+    return Pair.of(toTimeString(tz, calendar), closeable);
+  }
+
+  private static String toTimeString(TimeZone tz, Calendar cal) {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:", Locale.ROOT);
+    sdf.setTimeZone(tz);
+    return sdf.format(cal.getTime());
+  }
+
+  @Tag("slow")
+  @Test public void testCurrentDateFuncWithCurrentTime() {
+    testCurrentDateFunc(currentTimeString(LOCAL_TZ));
+  }
+
+  @Test public void testCurrentDateFuncWithFixedTime() {
+    testCurrentDateFunc(fixedTimeString(LOCAL_TZ));
+  }
+
+  private void testCurrentDateFunc(Pair<String, Hook.Closeable> pair) {
     tester.setFor(SqlStdOperatorTable.CURRENT_DATE, VM_FENNEL);
 
     // A tester with a lenient conformance that allows parentheses.
@@ -6095,7 +6151,6 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkType("CURRENT_TIME()", "TIME(0) NOT NULL");
 
     // Check the actual value.
-    final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
     final String dateString = pair.left;
     try (Hook.Closeable ignore = pair.right) {
       tester.checkScalar("CAST(CURRENT_DATE AS VARCHAR(30))",
@@ -8791,11 +8846,19 @@ public abstract class SqlOperatorBaseTest {
   }
 
   /** Test that calls all operators with all possible argument types, and for
-   * each type, with a set of tricky values. */
+   * each type, with a set of tricky values.
+   *
+   * This is not really a unit test since there are no assertions;
+   * it either succeeds or fails in the preparation of the operator case
+   * and not when actually testing (validating/executing) the call.
+   *
+   * Nevertheless the log messages conceal many problems which potentially need
+   * to be fixed especially cases where the query passes from the validation stage
+   * and fails at runtime.
+   * */
+  @Disabled("Too slow and not really a unit test")
+  @Tag("slow")
   @Test public void testArgumentBounds() {
-    if (!CalciteSystemProperty.TEST_SLOW.value()) {
-      return;
-    }
     final SqlValidatorImpl validator = (SqlValidatorImpl) tester.getValidator();
     final SqlValidatorScope scope = validator.getEmptyScope();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
@@ -8811,10 +8874,26 @@ public abstract class SqlOperatorBaseTest {
     builder.add1(SqlTypeName.VARCHAR, 11, "", " ", "hello world");
     builder.add1(SqlTypeName.CHAR, 5, "", "e", "hello");
     builder.add0(SqlTypeName.TIMESTAMP, 0L, DateTimeUtils.MILLIS_PER_DAY);
+
+    Set<SqlOperator> operatorsToSkip = new HashSet<>();
+    if (!Bug.CALCITE_3243_FIXED) {
+      // TODO: Remove entirely the if block when the bug is fixed
+      // REVIEW zabetak 12-August-2019: It may still make sense to avoid the
+      // JSON functions since for most of the values above they are expected
+      // to raise an error and due to the big number of operands they accept
+      // they increase significantly the running time of the method.
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE);
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE_ANY);
+      operatorsToSkip.add(SqlStdOperatorTable.JSON_QUERY);
+    }
+    // Skip since ClassCastException is raised in SqlOperator#unparse
+    // since the operands of the call do not have the expected type.
+    // Moreover, the values above do not make much sense for this operator.
+    operatorsToSkip.add(SqlStdOperatorTable.WITHIN_GROUP);
+    operatorsToSkip.add(SqlStdOperatorTable.TRIM); // can't handle the flag argument
+    operatorsToSkip.add(SqlStdOperatorTable.EXISTS);
     for (SqlOperator op : SqlStdOperatorTable.instance().getOperatorList()) {
-      switch (op.getKind()) {
-      case TRIM: // can't handle the flag argument
-      case EXISTS:
+      if (operatorsToSkip.contains(op)) {
         continue;
       }
       switch (op.getSyntax()) {
@@ -8873,15 +8952,29 @@ public abstract class SqlOperatorBaseTest {
               tester.check(query, SqlTests.ANY_TYPE_CHECKER,
                   SqlTests.ANY_PARAMETER_CHECKER, result -> { });
             }
-          } catch (Error e) {
-            System.out.println(s + ": " + e.getMessage());
-            throw e;
-          } catch (Exception e) {
-            System.out.println("Failed: " + s + ": " + e.getMessage());
+          } catch (Throwable e) {
+            // Logging the top-level throwable directly makes the message
+            // difficult to read since it either contains too much information
+            // or very few details.
+            Throwable cause = findMostDescriptiveCause(e);
+            LOGGER.info("Failed: " + s + ": " + cause);
           }
         }
       }
     }
+  }
+
+  private Throwable findMostDescriptiveCause(Throwable ex) {
+    if (ex instanceof CalciteException
+        || ex instanceof CalciteContextException
+        || ex instanceof SqlParseException) {
+      return ex;
+    }
+    Throwable cause = ex.getCause();
+    if (cause != null) {
+      return findMostDescriptiveCause(cause);
+    }
+    return ex;
   }
 
   private List<Object> getValues(BasicSqlType type, boolean inBound) {

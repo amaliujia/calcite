@@ -29,11 +29,10 @@ import org.apache.calcite.test.WithLex;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.MethodRule;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,18 +45,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests
  * for SqlAdvisor.
  */
+@ExtendWith(SqlValidatorTestCase.LexConfiguration.class)
 public class SqlAdvisorTest extends SqlValidatorTestCase {
   public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
       SqlAdvisorValidator::new);
-
-  @Rule public MethodRule configureTester = SqlValidatorTestCase.TESTER_CONFIGURATION_RULE;
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -416,7 +414,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       }
       buf.append(token).append("\n");
     }
-    Assert.assertEquals(expected, buf.toString());
+    Assertions.assertEquals(expected, buf.toString());
   }
 
   protected void assertHint(
@@ -446,7 +444,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         advisor.getCompletionHints(
             sap.sql,
             sap.pos);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         expectedResults, convertCompletionHints(results));
   }
 
@@ -463,7 +461,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     String actual = advisor.simplifySql(sap.sql, sap.cursor);
-    Assert.assertEquals(expected, actual);
+    Assertions.assertEquals(expected, actual);
   }
 
   protected void assertComplete(
@@ -508,10 +506,10 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     final String[] replaced = {null};
     List<SqlMoniker> results =
         advisor.getCompletionHints(sap.sql, sap.cursor, replaced);
-    Assert.assertEquals("Completion hints for " + sql,
-        expectedResults, convertCompletionHints(results));
+    Assertions.assertEquals(expectedResults, convertCompletionHints(results),
+        () -> "Completion hints for " + sql);
     if (expectedWord != null) {
-      Assert.assertEquals("replaced[0] for " + sql, expectedWord, replaced[0]);
+      Assertions.assertEquals(expectedWord, replaced[0], "replaced[0] for " + sql);
     } else {
       assertNotNull(replaced[0]);
     }
@@ -532,13 +530,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       }
       missingReplacemenets.remove(id);
       String actualReplacement = advisor.getReplacement(result, word);
-      Assert.assertEquals(sql + ", replacement of " + word + " with " + id,
-          expectedReplacement, actualReplacement);
+      Assertions.assertEquals(expectedReplacement, actualReplacement,
+          () -> sql + ", replacement of " + word + " with " + id);
     }
     if (missingReplacemenets.isEmpty()) {
       return;
     }
-    Assert.fail("Sql " + sql + " did not produce replacement hints " + missingReplacemenets);
+    fail("Sql " + sql + " did not produce replacement hints " + missingReplacemenets);
 
   }
 
@@ -1412,7 +1410,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("KEYWORD(FROM)", "from"));
   }
 
-  @Ignore("Inserts are not supported by SimpleParser yet")
+  @Disabled("Inserts are not supported by SimpleParser yet")
   @Test public void testInsert() throws Exception {
     String sql;
     sql = "insert into emp(empno, mgr) select ^ from dept a";
@@ -1462,7 +1460,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, "", "nu");
   }
 
-  @Ignore("The set of completion results is empty")
+  @Disabled("The set of completion results is empty")
   @Test public void testNestTable1() throws Exception {
     String sql;
     // select scott.emp.deptno from scott.emp; # valid
@@ -1492,7 +1490,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
 
-  @Ignore("The set of completion results is empty")
+  @Disabled("The set of completion results is empty")
   @Test public void testNestTable3() throws Exception {
     String sql;
     // select scott.emp.deptno from emp; # valid
