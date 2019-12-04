@@ -150,7 +150,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
         Expressions.parameter(
             Types.of(Enumerator.class, inputJavaType), "inputEnumerator");
     Expression input =
-        RexToLixTranslator.convert(
+        EnumUtils.convert(
             Expressions.call(
                 inputEnumerator,
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
