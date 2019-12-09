@@ -24,14 +24,7 @@ import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
-import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.BlockStatement;
-import org.apache.calcite.linq4j.tree.Blocks;
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.MemberDeclaration;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.*;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.VisitorDataContext;
@@ -148,18 +141,18 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   private Result tableValuedFunctionWindowingImplement(
       EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
-    final BlockBuilder builder = new BlockBuilder();
+//    final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInputs().get(0);
 
     final Result result =
         implementor.visitChild(this, 0, child, pref);
-
+    System.out.println(result.block.toString());
     final PhysType physType = PhysTypeImpl.of(
         typeFactory, getRowType(), pref.prefer(result.format));
 
-    Type outputJavaType = physType.getJavaRowType();
-    final Type enumeratorType =
-        Types.of(Enumerator.class, outputJavaType);
+//    Type outputJavaType = physType.getJavaRowType();
+//    final Type enumeratorType =
+//        Types.of(Enumerator.class, outputJavaType);
     Type inputJavaType = result.physType.getJavaRowType();
     ParameterExpression inputEnumerator =
         Expressions.parameter(
@@ -171,17 +164,17 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
-//    BlockStatement moveNextBody =
-//        Blocks.toFunctionBlock(
-//            Expressions.call(
-//                inputEnumerator,
-//                BuiltInMethod.ENUMERATOR_MOVE_NEXT.method));
-
     final BlockBuilder builder3 = new BlockBuilder();
     final SqlConformance conformance =
         (SqlConformance) implementor.map.getOrDefault("_conformance",
             SqlConformanceEnum.DEFAULT);
-
+    final Expression inputEnumerable = builder3.append(
+        "inputEnumerable", result.block, false);
+//    final Expression enumeratorExpression = builder3.append("enumerator", inputEnumerator);
+//    final Expression inputEnumerator = builder3.append("enumerator",
+//        Expressions.call(
+//            inputEnumerable,
+//            BuiltInMethod.ENUMERABLE_ENUMERATOR.method)));
     List<Expression> expressions =
         RexToLixTranslator.translateTableFunction(
             typeFactory,
@@ -193,6 +186,16 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
                     Pair.of(input, result.physType))),
             (RexCall) getCall(), getInputs().get(0));
 //    builder3.add(Expressions.return_(null, physType.record(expressions)));
+
+    builder3.add( Expressions.call(
+        Types.lookupMethod(this.getClass(), "tumbling",
+            Enumerator.class, long.class, long.class),
+        Expressions.list(
+            Expressions.call(
+                inputEnumerable,
+                BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+            expressions.get(0),
+            expressions.get(1))));
 //    BlockStatement currentBody = builder3.toBlock();
 //
 //    final Expression inputEnumerable = builder.append(
@@ -241,17 +244,27 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
 //                        NO_PARAMS,
 //                        Blocks.toFunctionBlock(body))))));
 
-
-    builder.append(
-        Expressions.call(
-            Types.lookupMethod(this.getClass(), "tumbling",
-                Enumerator.class, long.class, long.class),
-            Expressions.list(
-                inputEnumerator,
-                expressions.get(0),
-                expressions.get(1))));
-    LOGGER.info(builder.toBlock().toString());
-    return implementor.result(physType, builder.toBlock());
+//     e = Expressions.list(Expressions.fieldDecl(Modifier.PUBLIC | Modifier.FINAL,
+//                    inputEnumerator,
+//                    Expressions.call(
+//                        inputEnumerable,
+//                        BuiltInMethod.ENUMERABLE_ENUMERATOR.method)));
+//    builder.append("inputEnumerator", Expressions.call(
+//        inputEnumerable,
+//        BuiltInMethod.ENUMERABLE_ENUMERATOR.method));
+//    builder.append("v", builder3.toBlock(), false);
+//    builder.add(
+//        Expressions.call(
+//            Types.lookupMethod(this.getClass(), "tumbling",
+//                Enumerator.class, long.class, long.class),
+//            Expressions.list(
+//                Expressions.call(
+//                    inputEnumerable,
+//                    BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+//                expressions.get(0),
+//                expressions.get(1))));
+    LOGGER.info(builder3.toBlock().toString());
+    return implementor.result(physType, builder3.toBlock());
   }
 
   public static Enumerable<Object[]> tumbling(final Enumerator<Object[]> inputEnumerator,
@@ -279,8 +292,8 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       Object[] current = inputEnumerator.current();
       Object[] ret = new Object[current.length + 2];
       System.arraycopy(current, 0, ret, 0, current.length);
-      ret[current.length] = tumbleWindowStart(tsMillis, intervalSize);
-      ret[current.length + 1] = tumbleWindowEnd(tsMillis, intervalSize);
+      ret[current.length] = tumbleWindowStart(toLong(current[0]), intervalSize);
+      ret[current.length + 1] = tumbleWindowEnd(toLong(current[0]), intervalSize);
       return ret;
     }
 

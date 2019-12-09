@@ -970,8 +970,11 @@ public class RexToLixTranslator {
 
       RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
       List<Expression> translatedOperandsForTumble = new ArrayList<>();
-      translatedOperandsForTumble.add(
-          translatedOperands.get(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
+//      translatedOperandsForTumble.add(
+//          translatedOperands.get(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
+
+    translatedOperandsForTumble.add(
+        Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
       translatedOperandsForTumble.add(intervalExpression);
       // compute the window_start
 //      MethodNameImplementor windowStartMethod = new MethodNameImplementor("tumbleWindowStart");
