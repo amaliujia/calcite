@@ -2254,7 +2254,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
-  /** The {@code DESCRIPTOR(column_name, ...)}. */
+  /** DESCRIPTOR(column_name, ...). */
   public static final SqlOperator DESCRIPTOR = new SqlDescriptorOperator();
 
   /** TUMBLE as a table-value function. */
