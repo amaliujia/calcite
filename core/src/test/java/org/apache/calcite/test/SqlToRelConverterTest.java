@@ -253,6 +253,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * This query is supposed to be flattened as SELECT ROW(1, 'str', 2, 3).
+   */
+  @Test
+  public void testRowFlattening() {
+    final String sql = "SELECT ROW(1, 'str', ROW(2, 3))";
+    sql(sql).ok();
+  }
+
   @Test public void testJoinNatural() {
     sql("SELECT * FROM emp NATURAL JOIN dept").ok();
   }
