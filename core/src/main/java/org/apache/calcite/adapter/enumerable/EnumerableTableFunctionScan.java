@@ -18,7 +18,12 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
@@ -29,12 +34,12 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.VisitorDataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlKind;
@@ -46,9 +51,14 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.calcite.util.trace.CalciteLogger;
+
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -56,11 +66,17 @@ import java.util.Set;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_PARAMS;
+import static org.apache.calcite.runtime.SqlFunctions.toInt;
+import static org.apache.calcite.runtime.SqlFunctions.toLong;
+import static org.apache.calcite.runtime.SqlFunctions.tumbleWindowEnd;
+import static org.apache.calcite.runtime.SqlFunctions.tumbleWindowStart;
 
 /** Implementation of {@link org.apache.calcite.rel.core.TableFunctionScan} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableFunctionScan extends TableFunctionScan
     implements EnumerableRel {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(EnumerableTableFunctionScan.class.getName()));
 
   public EnumerableTableFunctionScan(RelOptCluster cluster,
       RelTraitSet traits, List<RelNode> inputs, Type elementType,
@@ -133,7 +149,6 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
-    // TODO: only supports one input now. Can extend to multiple inputs when needed.
     final EnumerableRel child = (EnumerableRel) getInputs().get(0);
 
     final Result result =
@@ -156,11 +171,11 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
-    BlockStatement moveNextBody =
-        Blocks.toFunctionBlock(
-            Expressions.call(
-                inputEnumerator,
-                BuiltInMethod.ENUMERATOR_MOVE_NEXT.method));
+//    BlockStatement moveNextBody =
+//        Blocks.toFunctionBlock(
+//            Expressions.call(
+//                inputEnumerator,
+//                BuiltInMethod.ENUMERATOR_MOVE_NEXT.method));
 
     final BlockBuilder builder3 = new BlockBuilder();
     final SqlConformance conformance =
@@ -177,56 +192,108 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
                 Collections.singletonList(
                     Pair.of(input, result.physType))),
             (RexCall) getCall(), getInputs().get(0));
-    builder3.add(Expressions.return_(null, physType.record(expressions)));
-    BlockStatement currentBody = builder3.toBlock();
+//    builder3.add(Expressions.return_(null, physType.record(expressions)));
+//    BlockStatement currentBody = builder3.toBlock();
+//
+//    final Expression inputEnumerable = builder.append(
+//        "inputEnumerable", result.block, false);
+//    final Expression body =
+//        Expressions.new_(enumeratorType, NO_EXPRS,
+//            Expressions.list(
+//                Expressions.fieldDecl(Modifier.PUBLIC | Modifier.FINAL,
+//                    inputEnumerator,
+//                    Expressions.call(
+//                        inputEnumerable,
+//                        BuiltInMethod.ENUMERABLE_ENUMERATOR.method)),
+//                EnumUtils.overridingMethodDecl(
+//                    BuiltInMethod.ENUMERATOR_RESET.method,
+//                    NO_PARAMS,
+//                    Blocks.toFunctionBlock(
+//                        Expressions.call(
+//                            inputEnumerator,
+//                            BuiltInMethod.ENUMERATOR_RESET.method))),
+//                EnumUtils.overridingMethodDecl(
+//                    BuiltInMethod.ENUMERATOR_MOVE_NEXT.method,
+//                    NO_PARAMS,
+//                    moveNextBody),
+//                EnumUtils.overridingMethodDecl(
+//                    BuiltInMethod.ENUMERATOR_CLOSE.method,
+//                    NO_PARAMS,
+//                    Blocks.toFunctionBlock(
+//                        Expressions.call(
+//                            inputEnumerator,
+//                            BuiltInMethod.ENUMERATOR_CLOSE.method))),
+//                Expressions.methodDecl(
+//                    Modifier.PUBLIC,
+//                    BRIDGE_METHODS ? Object.class : outputJavaType, "current",
+//                    NO_PARAMS,
+//                    currentBody)));
+//    builder.add(
+//        Expressions.return_(null,
+//            Expressions.new_(
+//                BuiltInMethod.ABSTRACT_ENUMERABLE_CTOR.constructor,
+//                NO_EXPRS,
+//                ImmutableList.<MemberDeclaration>of(
+//                    Expressions.methodDecl(
+//                        Modifier.PUBLIC,
+//                        enumeratorType,
+//                        BuiltInMethod.ENUMERABLE_ENUMERATOR.method.getName(),
+//                        NO_PARAMS,
+//                        Blocks.toFunctionBlock(body))))));
 
-    final Expression inputEnumerable = builder.append(
-        "inputEnumerable", result.block, false);
-    final Expression body =
-        Expressions.new_(enumeratorType, NO_EXPRS,
+
+    builder.append(
+        Expressions.call(
+            Types.lookupMethod(this.getClass(), "tumbling",
+                Enumerator.class, long.class, long.class),
             Expressions.list(
-                Expressions.fieldDecl(Modifier.PUBLIC | Modifier.FINAL,
-                    inputEnumerator,
-                    Expressions.call(
-                        inputEnumerable,
-                        BuiltInMethod.ENUMERABLE_ENUMERATOR.method)),
-                EnumUtils.overridingMethodDecl(
-                    BuiltInMethod.ENUMERATOR_RESET.method,
-                    NO_PARAMS,
-                    Blocks.toFunctionBlock(
-                        Expressions.call(
-                            inputEnumerator,
-                            BuiltInMethod.ENUMERATOR_RESET.method))),
-                EnumUtils.overridingMethodDecl(
-                    BuiltInMethod.ENUMERATOR_MOVE_NEXT.method,
-                    NO_PARAMS,
-                    moveNextBody),
-                EnumUtils.overridingMethodDecl(
-                    BuiltInMethod.ENUMERATOR_CLOSE.method,
-                    NO_PARAMS,
-                    Blocks.toFunctionBlock(
-                        Expressions.call(
-                            inputEnumerator,
-                            BuiltInMethod.ENUMERATOR_CLOSE.method))),
-                Expressions.methodDecl(
-                    Modifier.PUBLIC,
-                    BRIDGE_METHODS ? Object.class : outputJavaType, "current",
-                    NO_PARAMS,
-                    currentBody)));
-    builder.add(
-        Expressions.return_(null,
-            Expressions.new_(
-                BuiltInMethod.ABSTRACT_ENUMERABLE_CTOR.constructor,
-                NO_EXPRS,
-                ImmutableList.<MemberDeclaration>of(
-                    Expressions.methodDecl(
-                        Modifier.PUBLIC,
-                        enumeratorType,
-                        BuiltInMethod.ENUMERABLE_ENUMERATOR.method.getName(),
-                        NO_PARAMS,
-                        Blocks.toFunctionBlock(body))))));
-
+                inputEnumerator,
+                expressions.get(0),
+                expressions.get(1))));
+    LOGGER.info(builder.toBlock().toString());
     return implementor.result(physType, builder.toBlock());
+  }
+
+  public static Enumerable<Object[]> tumbling(final Enumerator<Object[]> inputEnumerator,
+           long ts,
+           long intervalSize) {
+    return new AbstractEnumerable<Object[]>() {
+      @Override public Enumerator<Object[]> enumerator() {
+        return new TumbleEnumerator(inputEnumerator, ts, intervalSize);
+      }
+    };
+  }
+
+  private static class TumbleEnumerator implements Enumerator<Object[]> {
+    private final Enumerator<Object[]> inputEnumerator;
+    private final long tsMillis;
+    private final long intervalSize;
+
+    TumbleEnumerator(Enumerator<Object[]> inputEnumerator, long tsMillis, long intervalSize) {
+      this.inputEnumerator = inputEnumerator;
+      this.tsMillis = tsMillis;
+      this.intervalSize = intervalSize;
+    }
+
+    public Object[] current() {
+      Object[] current = inputEnumerator.current();
+      Object[] ret = new Object[current.length + 2];
+      System.arraycopy(current, 0, ret, 0, current.length);
+      ret[current.length] = tumbleWindowStart(tsMillis, intervalSize);
+      ret[current.length + 1] = tumbleWindowEnd(tsMillis, intervalSize);
+      return ret;
+    }
+
+    public boolean moveNext() {
+      return inputEnumerator.moveNext();
+    }
+
+    public void reset() {
+      inputEnumerator.reset();
+    }
+
+    public void close() {
+    }
   }
 }
 

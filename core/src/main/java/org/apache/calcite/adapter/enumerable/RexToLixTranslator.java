@@ -954,7 +954,7 @@ public class RexToLixTranslator {
   }
 
   private List<Expression> translateTableFunctionCall(RexCall rexCall, RelNode input) {
-    if (rexCall.op.getKind() == SqlKind.TUMBLE) {
+//    if (rexCall.op.getKind() == SqlKind.TUMBLE) {
       // construct a input ref over watermarked column.
       // Before DESCRIPTOR is implemented, the second parameter of TUMBLE
       // is a string, which is one of the column from input.
@@ -974,18 +974,18 @@ public class RexToLixTranslator {
           translatedOperands.get(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
       translatedOperandsForTumble.add(intervalExpression);
       // compute the window_start
-      MethodNameImplementor windowStartMethod = new MethodNameImplementor("tumbleWindowStart");
-      translatedOperands.add(
-          windowStartMethod.implement(this, rexCall, translatedOperandsForTumble));
+//      MethodNameImplementor windowStartMethod = new MethodNameImplementor("tumbleWindowStart");
+//      translatedOperands.add(
+//          windowStartMethod.implement(this, rexCall, translatedOperandsForTumble));
       // compute the window_end
-      MethodNameImplementor windowEndMethod = new MethodNameImplementor("tumbleWindowEnd");
-      translatedOperands.add(
-          windowEndMethod.implement(this, rexCall, translatedOperandsForTumble));
+//      MethodNameImplementor windowEndMethod = new MethodNameImplementor("tumbleWindowEnd");
+//      translatedOperands.add(
+//          windowEndMethod.implement(this, rexCall, translatedOperandsForTumble));
 
-      return translatedOperands;
-    } else {
-      return Arrays.asList(translate(rexCall));
-    }
+      return translatedOperandsForTumble;
+//    } else {
+//      return Arrays.asList(translate(rexCall));
+//    }
   }
 
   public static Expression translateCondition(RexProgram program,
