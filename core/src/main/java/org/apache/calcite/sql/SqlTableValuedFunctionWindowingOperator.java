@@ -24,13 +24,13 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
  * Base class for table-valued function windowing operator (TUMBLE, HOP and SESSION).
  */
 public class SqlTableValuedFunctionWindowingOperator extends SqlFunction {
-  public SqlTableValuedFunctionWindowingOperator(
-      String name, SqlKind kind,
+  public SqlTableValuedFunctionWindowingOperator(String name,
+      SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
-      super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
+    super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
   }
 
   /**
