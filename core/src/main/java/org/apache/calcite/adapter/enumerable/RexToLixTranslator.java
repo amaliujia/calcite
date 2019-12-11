@@ -951,16 +951,23 @@ public class RexToLixTranslator {
   }
 
   private List<Expression> translateTableFunctionCall(RexCall rexCall) {
-    if (rexCall.op.getKind() == SqlKind.TUMBLE) {
+    if (rexCall.op.getKind() == SqlKind.TUMBLE
+        || rexCall.op.getKind() == SqlKind.HOP) {
+      List<Expression> translatedOperands = new ArrayList<>();
+      RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
+      translatedOperands.add(
+          Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
+
       assert rexCall.getOperands().get(2) instanceof RexLiteral;
       Expression intervalExpression = translate(rexCall.getOperands().get(2));
-      RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
-      List<Expression> translatedOperandsForTumble = new ArrayList<>();
-      translatedOperandsForTumble.add(
-          Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
-      translatedOperandsForTumble.add(intervalExpression);
-
-      return translatedOperandsForTumble;
+      translatedOperands.add(intervalExpression);
+      if (rexCall.op.getKind() == SqlKind.HOP) {
+        // HOP has another interval parameter.
+        assert rexCall.getOperands().get(2) instanceof RexLiteral;
+        Expression intervalExpression2 = translate(rexCall.getOperands().get(3));
+        translatedOperands.add(intervalExpression2);
+      }
+      return translatedOperands;
     } else {
       return Arrays.asList(translate(rexCall));
     }

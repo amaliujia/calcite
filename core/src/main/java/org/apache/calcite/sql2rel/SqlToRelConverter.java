@@ -2457,7 +2457,8 @@ public class SqlToRelConverter {
     RexNode rexCall = bb.convertExpression(call);
     List<RelNode> inputs = new ArrayList<>();
 
-    if (rexCall.getKind() == SqlKind.TUMBLE) {
+    if (rexCall.getKind() == SqlKind.TUMBLE
+        || rexCall.getKind() == SqlKind.HOP) {
       inputs.add(convertSelect((SqlSelect) call.getOperandList().get(0), false));
     } else {
       inputs = bb.retrieveCursors();

@@ -2286,6 +2286,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case WITH:
     case OTHER_FUNCTION:
     case TUMBLE:
+    case HOP:
       if (alias == null) {
         alias = deriveAlias(node, nextGeneratedId++);
       }
@@ -2742,6 +2743,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(node, parentScope);
       break;
     case TUMBLE:
+    case HOP:
       call = (SqlCall) node;
       // register subqueries before build namespace for TUMBLE because we need to know
       // the scope of input relation.

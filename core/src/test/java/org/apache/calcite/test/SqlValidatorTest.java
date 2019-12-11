@@ -10087,8 +10087,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testDescriptor() {
-    sql("select * from table(tumble(table orders, descriptor(rowtime)))").ok();
-    expr("select * from table(tumble(table orders, descriptor(^column_not_exist^)))")
+    sql("select * from table(tumble(table orders, descriptor(rowtime), INTERVAL '1' MINUTE))").ok();
+    expr("select * from table(tumble(table orders, descriptor(^column_not_exist^), INTERVAL '1' MINUTE))")
         .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
   }
 
@@ -10152,7 +10152,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
         .fails("Call to auxiliary group function 'HOP_START' must have "
-            + "matching call to group function 'HOP' in GROUP BY clause");
+            + "matching call to group function '\\$HOP' in GROUP BY clause");
     // HOP with align
     sql("select stream\n"
         + "  hop_start(rowtime, interval '1' hour, interval '3' hour,\n"

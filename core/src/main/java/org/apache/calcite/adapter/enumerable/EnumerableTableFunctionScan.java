@@ -45,9 +45,7 @@ import org.apache.calcite.util.Pair;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
 import static org.apache.calcite.runtime.SqlFunctions.tumbleWindowEnd;
@@ -78,8 +76,9 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    if (getCall().getKind() == SqlKind.TUMBLE) {
-      return tableValuedFunctionWindowingImplement(implementor, pref);
+    if (getCall().getKind() == SqlKind.TUMBLE
+        || getCall().getKind() == SqlKind.HOP) {
+      return tableValuedFunctionWindowingImplement(implementor, pref, getCall().getKind());
     } else {
       BlockBuilder bb = new BlockBuilder();
       // Non-array user-specified types are not supported yet
@@ -126,7 +125,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   private Result tableValuedFunctionWindowingImplement(
-      EnumerableRelImplementor implementor, Prefer pref) {
+      EnumerableRelImplementor implementor, Prefer pref, SqlKind kind) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInputs().get(0);
@@ -164,14 +163,28 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     final Expression inputEnumerable = builder.append(
         "inputEnumerable", result.block, false);
 
-    builder.add(
-        Expressions.call(
-            Types.lookupMethod(
-                this.getClass(), "tumbling", Enumerator.class, int.class, long.class),
-            Expressions.list(
-                Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
-                expressions.get(0),
-                expressions.get(1))));
+    if (kind == SqlKind.TUMBLE) {
+      builder.add(
+          Expressions.call(
+              Types.lookupMethod(
+                  this.getClass(), "tumbling", Enumerator.class, int.class, long.class),
+              Expressions.list(
+                  Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+                  expressions.get(0),
+                  expressions.get(1))));
+    } else { // HOP
+      builder.add(
+          Expressions.call(
+              Types.lookupMethod(
+                  this.getClass(), "hoping",
+                  Enumerator.class, int.class, long.class, long.class),
+              Expressions.list(
+                  Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+                  expressions.get(0),
+                  expressions.get(1),
+                  expressions.get(2))));
+    }
+
 
     return implementor.result(physType, builder.toBlock());
   }
@@ -182,6 +195,18 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         return new TumbleEnumerator(inputEnumerator, indexOfWatermarkedColumn, intervalSize);
+      }
+    };
+  }
+
+  public static Enumerable<Object[]> hoping(Enumerator<Object[]> inputEnumerator,
+                                              int indexOfWatermarkedColumn,
+                                              long emitFrequency,
+                                              long intervalSize) {
+    return new AbstractEnumerable<Object[]>() {
+      @Override public Enumerator<Object[]> enumerator() {
+        return new HopEnumerator(inputEnumerator,
+            indexOfWatermarkedColumn, emitFrequency, intervalSize);
       }
     };
   }
@@ -223,6 +248,76 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
 
     public void close() {
     }
+  }
+
+  /**
+   * HopEnumerator applies hoping on each element from the input enumerator and produces
+   * at least one element for each input element.
+   */
+  private static class HopEnumerator implements Enumerator<Object[]> {
+    private final Enumerator<Object[]> inputEnumerator;
+    private final int indexOfWatermarkedColumn;
+    private final long emitFrequency;
+    private final long intervalSize;
+    private LinkedList<Object[]> list;
+
+    HopEnumerator(Enumerator<Object[]> inputEnumerator,
+                     int indexOfWatermarkedColumn, long emitFrequency, long intervalSize) {
+      this.inputEnumerator = inputEnumerator;
+      this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
+      this.emitFrequency = emitFrequency;
+      this.intervalSize = intervalSize;
+      list = new LinkedList<>();
+    }
+
+    public Object[] current() {
+      if (list.size() > 0) {
+        return takeOne();
+      } else {
+        Object[] current = inputEnumerator.current();
+        List<Pair> windows = hopWindows(toLong(current[indexOfWatermarkedColumn]),
+            emitFrequency, intervalSize);
+        for (Pair window : windows) {
+          Object[] curWithWindow = new Object[current.length + 2];
+          System.arraycopy(current, 0, curWithWindow, 0, current.length);
+          curWithWindow[current.length] = window.left;
+          curWithWindow[current.length + 1] = window.right;
+          list.offer(curWithWindow);
+        }
+        return takeOne();
+      }
+
+    }
+
+    public boolean moveNext() {
+      if (list.size() > 0) {
+        return true;
+      }
+      return inputEnumerator.moveNext();
+    }
+
+    public void reset() {
+      inputEnumerator.reset();
+      list.clear();
+    }
+
+    public void close() {
+    }
+
+    private Object[] takeOne() {
+      return list.pollFirst();
+    }
+  }
+
+  private static List<Pair> hopWindows(long tsMillis, long periodMillis, long sizeMillis) {
+    ArrayList<Pair> ret = new ArrayList<>((int) (sizeMillis / periodMillis));
+    long lastStart = tsMillis - ((tsMillis + periodMillis) % periodMillis);
+    for (long start = lastStart;
+         start > tsMillis - sizeMillis;
+         start -= periodMillis) {
+      ret.add(new Pair(start, start + sizeMillis));
+    }
+    return ret;
   }
 }
 

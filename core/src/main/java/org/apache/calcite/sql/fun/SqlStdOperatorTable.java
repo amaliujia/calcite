@@ -2265,8 +2265,23 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0_TABLE_FUNCTION_WINDOWING, null,
           OperandTypes.or(
               OperandTypes.ROW,
-              OperandTypes.STRING,
-              OperandTypes.DATETIME_INTERVAL),
+              OperandTypes.or(
+                  OperandTypes.DATETIME_INTERVAL,
+                  OperandTypes.DATETIME_INTERVAL_TIME)),
+          SqlFunctionCategory.SYSTEM
+      );
+
+  /** HOP as a table-value function. */
+  public static final SqlFunction HOP_TABLE_FUNCTION =
+      new SqlTableValuedFunctionWindowingOperator(
+          SqlKind.HOP.name(),
+          SqlKind.HOP,
+          ReturnTypes.ARG0_TABLE_FUNCTION_WINDOWING, null,
+          OperandTypes.or(
+              OperandTypes.ROW,
+              OperandTypes.or(
+                  OperandTypes.DATETIME_INTERVAL_INTERVAL,
+                  OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME)),
           SqlFunctionCategory.SYSTEM
       );
 
@@ -2306,7 +2321,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The {@code HOP} group function. */
   public static final SqlGroupedWindowFunction HOP =
-      new SqlGroupedWindowFunction(SqlKind.HOP.name(), SqlKind.HOP, null,
+      new SqlGroupedWindowFunction("$HOP", SqlKind.HOP, null,
           ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME),

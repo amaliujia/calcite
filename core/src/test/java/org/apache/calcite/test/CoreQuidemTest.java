@@ -19,6 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.util.TryThreadLocal;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.Collection;
 
 /**
@@ -32,10 +34,12 @@ public class CoreQuidemTest extends QuidemTest {
    * <blockquote>
    *   <code>java CoreQuidemTest sql/dummy.iq</code>
    * </blockquote> */
-  public static void main(String[] args) throws Exception {
-    for (String arg : args) {
-      new CoreQuidemTest().test(arg);
-    }
+  @Test
+  public void tet() throws Exception {
+//    for (String arg : args) {
+//      new CoreQuidemTest().test(arg);
+//    }
+    new CoreQuidemTest().test("sql/stream.iq");
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */

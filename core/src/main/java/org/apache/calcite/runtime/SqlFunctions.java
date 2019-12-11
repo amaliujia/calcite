@@ -33,12 +33,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.NumberUtil;
-import org.apache.calcite.util.TimeWithTimeZoneString;
-import org.apache.calcite.util.TimestampWithTimeZoneString;
-import org.apache.calcite.util.Unsafe;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.*;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
