@@ -226,6 +226,7 @@ public class Frameworks {
     private boolean evolveLattice;
     private SqlStatisticProvider statisticProvider;
     private RelOptTable.ViewExpander viewExpander;
+    private boolean isDisableStructFlattener;
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
@@ -238,6 +239,7 @@ public class Frameworks {
       typeSystem = RelDataTypeSystem.DEFAULT;
       evolveLattice = false;
       statisticProvider = QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE;
+      isDisableStructFlattener = false;
     }
 
     /** Creates a ConfigBuilder, initializing from an existing config. */
@@ -255,6 +257,7 @@ public class Frameworks {
       typeSystem = config.getTypeSystem();
       evolveLattice = config.isEvolveLattice();
       statisticProvider = config.getStatisticProvider();
+      isDisableStructFlattener = config.isDisableStructFlattener();
     }
 
     public FrameworkConfig build() {
@@ -357,6 +360,11 @@ public class Frameworks {
 
     public ConfigBuilder viewExpander(RelOptTable.ViewExpander viewExpander) {
       this.viewExpander = viewExpander;
+      return this;
+    }
+
+    public ConfigBuilder setIsDisableStructFlattener(boolean isDisableStructFlattener) {
+      this.isDisableStructFlattener = isDisableStructFlattener;
       return this;
     }
   }

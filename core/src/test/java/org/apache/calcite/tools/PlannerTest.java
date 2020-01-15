@@ -1471,4 +1471,31 @@ public class PlannerTest {
     final RelRoot root = planner.rel(validate);
     assertThat(toString(root.rel), matcher);
   }
+
+  @Test public void testStructColumnInTableScan() throws Exception {
+    final SchemaPlus schema = Frameworks.createRootSchema(true)
+        .add("row_table", new ReflectiveSchema(new TpchSchema()));
+
+    String query = "select t.psPartkey from \n"
+        + "(select ps.psPartkey from `tpch`.`partsupp` ps \n"
+        + "order by ps.psPartkey, ps.psSupplyCost) t \n"
+        + "order by t.psPartkey";
+
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(schema)
+        .setIsDisableStructFlattener(true)
+        .build();
+    String plan;
+    try (Planner p = Frameworks.getPlanner(config)) {
+      SqlNode n = p.parse(query);
+      n = p.validate(n);
+      RelNode r = p.rel(n).project();
+      plan = RelOptUtil.toString(r);
+      plan = Util.toLinux(plan);
+    }
+    assertThat(plan,
+        equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "  LogicalProject(psPartkey=[$0])\n"
+            + "    EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+  }
 }
