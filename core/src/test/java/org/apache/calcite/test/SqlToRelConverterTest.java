@@ -1753,6 +1753,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testTableValuedFunctionTumbleAndEmit() {
+    final String sql = "select *\n"
+        + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE))\n"
+        + "emit after watermark";
+    sql(sql).ok();
+  }
+
   // In generated plan, the first parameter of TUMBLE function will always be the last field
   // of it's input. There isn't a way to give the first operand a proper type.
   @Test public void testTableValuedFunctionTumbleWithSubQueryParam() {

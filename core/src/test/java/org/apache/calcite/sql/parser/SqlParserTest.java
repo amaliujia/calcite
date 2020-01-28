@@ -8787,6 +8787,22 @@ public class SqlParserTest {
     sql(sql3).ok(expected3);
   }
 
+  @Test public void testEmitWithGroupBy() {
+    sql("select deptno, min(foo) as x from emp group by deptno, gender emit after watermark")
+        .ok("SELECT `DEPTNO`, MIN(`FOO`) AS `X`\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY `DEPTNO`, `GENDER`\n"
+            + "EMIT AFTER WATERMARK");
+  }
+
+  @Test public void testEmitWithWhere() {
+    sql("select * from emp where empno > 5 and gender = 'F' emit after watermark")
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "WHERE ((`EMPNO` > 5) AND (`GENDER` = 'F'))\n"
+            + "EMIT AFTER WATERMARK");
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

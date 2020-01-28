@@ -49,6 +49,7 @@ public class SqlSelect extends SqlCall {
   SqlNode offset;
   SqlNode fetch;
   SqlNodeList hints;
+  SqlNode emit;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -64,6 +65,23 @@ public class SqlSelect extends SqlCall {
       SqlNode offset,
       SqlNode fetch,
       SqlNodeList hints) {
+    this(pos, keywordList, selectList, from, where, groupBy, having, windowDecls, orderBy,
+        offset, fetch, hints, null);
+  }
+
+  public SqlSelect(SqlParserPos pos,
+      SqlNodeList keywordList,
+      SqlNodeList selectList,
+      SqlNode from,
+      SqlNode where,
+      SqlNodeList groupBy,
+      SqlNode having,
+      SqlNodeList windowDecls,
+      SqlNodeList orderBy,
+      SqlNode offset,
+      SqlNode fetch,
+      SqlNodeList hints,
+      SqlNode emit) {
     super(pos);
     this.keywordList = Objects.requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -78,6 +96,7 @@ public class SqlSelect extends SqlCall {
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
+    this.emit = emit;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -92,7 +111,7 @@ public class SqlSelect extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
+        groupBy, having, windowDecls, orderBy, offset, fetch, hints, emit);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {
@@ -126,6 +145,9 @@ public class SqlSelect extends SqlCall {
       break;
     case 9:
       fetch = operand;
+      break;
+    case 10:
+      emit = operand;
       break;
     default:
       throw new AssertionError(i);
@@ -221,6 +243,14 @@ public class SqlSelect extends SqlCall {
 
   public SqlNodeList getHints() {
     return this.hints;
+  }
+
+  public void setEmit(SqlNode emit) {
+    this.emit = emit;
+  }
+
+  public SqlNode getEmit() {
+    return emit;
   }
 
   public boolean hasHints() {

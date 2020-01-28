@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalEmit;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -430,6 +431,16 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newInput = getNewForOldRel(rel.getInput());
     RexNode newCondition = oldCondition.accept(rewriteRexShuttle);
     LogicalFilter newRel = rel.copy(traits, newInput, newCondition);
+    setNewForOldRel(rel, newRel);
+  }
+
+  public void rewriteRel(LogicalEmit rel) {
+    RelTraitSet traits = rel.getTraitSet();
+    RewriteRexShuttle rewriteRexShuttle = new RewriteRexShuttle();
+    RexNode oldEmitExpr = rel.getEmitExpression();
+    RelNode newInput = getNewForOldRel(rel.getInput());
+    RexNode newCondition = oldEmitExpr.accept(rewriteRexShuttle);
+    LogicalEmit newRel = rel.copy(traits, newInput, newCondition);
     setNewForOldRel(rel, newRel);
   }
 

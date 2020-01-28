@@ -233,6 +233,9 @@ public class SqlSelectOperator extends SqlOperator {
           select.orderBy);
     }
     writer.fetchOffset(select.fetch, select.offset);
+    if (select.emit != null) {
+      writer.sep("EMIT AFTER WATERMARK");
+    }
     writer.endList(selectFrame);
   }
 

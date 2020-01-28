@@ -1235,6 +1235,7 @@ SqlSelect SqlSelect() :
     final SqlNodeList windowDecls;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
+    final SqlNode emit;
 }
 {
     <SELECT>
@@ -1270,6 +1271,7 @@ SqlSelect SqlSelect() :
         groupBy = GroupByOpt()
         having = HavingOpt()
         windowDecls = WindowOpt()
+        emit = EmitOpt()
     |
         E() {
             fromClause = null;
@@ -1277,13 +1279,14 @@ SqlSelect SqlSelect() :
             groupBy = null;
             having = null;
             windowDecls = null;
+            emit = null;
         }
     )
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, null, null, null,
-            new SqlNodeList(hints, getPos()));
+            new SqlNodeList(hints, getPos()), emit);
     }
 }
 
@@ -2431,6 +2434,20 @@ SqlNode WhereOpt() :
     }
 }
 
+SqlNode EmitOpt() :
+{
+    final Span s;
+}
+{
+  <EMIT> <AFTER> <WATERMARK>
+  {
+    return SqlStdOperatorTable.emitAfterWatermark.createCall(span().end(this));
+  }
+  |
+  {
+      return null;
+  }
+}
 /**
  * Parses the optional GROUP BY clause for SELECT.
  */
@@ -6887,6 +6904,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < EACH: "EACH" >
 |   < ELEMENT: "ELEMENT" >
 |   < ELSE: "ELSE" >
+|   < EMIT: "EMIT" >
 |   < EMPTY: "EMPTY" >
 |   < ENCODING: "ENCODING">
 |   < END: "END" >
@@ -7370,6 +7388,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VERSION: "VERSION" >
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >
+|   < WATERMARK: "WATERMARK">
 |   < WEEK: "WEEK" >
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >

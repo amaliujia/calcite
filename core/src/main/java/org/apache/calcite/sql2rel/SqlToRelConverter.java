@@ -55,6 +55,7 @@ import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalEmit;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -662,6 +663,12 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
+
+    // convert emit
+    convertEmit(
+        bb,
+        select.getEmit());
+
     convertWhere(
         bb,
         select.getWhere());
@@ -2218,6 +2225,21 @@ public class SqlToRelConverter {
 
     default:
       throw new AssertionError("not a join operator " + from);
+    }
+  }
+
+  protected void convertEmit(Blackboard bb, SqlNode node) {
+    if (node == null) {
+      return;
+    }
+    switch (node.getKind()) {
+    case EMIT:
+      RexNode emitExpr = bb.convertExpression(node);
+      LogicalEmit logicalEmit = LogicalEmit.createEmit(bb.root, emitExpr);
+      bb.setRoot(logicalEmit, false);
+      break;
+    default:
+      throw new AssertionError("not a emit operator " + node);
     }
   }
 

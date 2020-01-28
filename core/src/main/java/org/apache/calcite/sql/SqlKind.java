@@ -213,6 +213,11 @@ public enum SqlKind {
   AS,
 
   /**
+   * EMIT operator
+   */
+  EMIT,
+
+  /**
    * ARGUMENT_ASSIGNMENT operator, {@code =>}
    */
   ARGUMENT_ASSIGNMENT,
