@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.plan.RelOptCluster;
@@ -33,7 +32,7 @@ public abstract class Emit extends SingleRel {
    * @param input Input relational expression
    */
   protected Emit(RelOptCluster cluster,
-    RelTraitSet traits, RelNode input, RexNode emitExpr) {
+      RelTraitSet traits, RelNode input, RexNode emitExpr) {
     super(cluster, traits, input);
     this.emitExpr = emitExpr;
   }

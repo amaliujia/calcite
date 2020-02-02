@@ -2450,7 +2450,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
-  public static final SqlEmitAfterWatermarkOperator emitAfterWatermark = new SqlEmitAfterWatermarkOperator();
+  public static final SqlEmitAfterWatermarkOperator EMIT_AFTER_WATERMARK_OPERATOR =
+      new SqlEmitAfterWatermarkOperator();
 
   //~ Methods ----------------------------------------------------------------
 

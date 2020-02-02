@@ -2441,7 +2441,7 @@ SqlNode EmitOpt() :
 {
   <EMIT> <AFTER> <WATERMARK>
   {
-    return SqlStdOperatorTable.emitAfterWatermark.createCall(span().end(this));
+    return SqlStdOperatorTable.EMIT_AFTER_WATERMARK_OPERATOR.createCall(span().end(this));
   }
   |
   {

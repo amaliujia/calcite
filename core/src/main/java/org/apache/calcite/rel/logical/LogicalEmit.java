@@ -14,17 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Emit;
-import org.apache.calcite.rel.metadata.RelMdCollation;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
 public class LogicalEmit extends Emit {
@@ -36,7 +32,7 @@ public class LogicalEmit extends Emit {
    * @param input Input relational expression
    */
   protected LogicalEmit(RelOptCluster cluster,
-    RelTraitSet traits, RelNode input, RexNode emitExpr) {
+      RelTraitSet traits, RelNode input, RexNode emitExpr) {
     super(cluster, traits, input, emitExpr);
   }
 
